@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Journal</title>
+    <style>body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#8aa36e,#fefae0);
+    height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 700px;
+    margin: auto;
+    margin-top: 40px;
+    padding: 20px;
+    background: linear-gradient(45deg,#fefae0,#b3cb99);
+    border-radius: 15px;
+    box-shadow: 0px 3px 15px #0003;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #48127d;
+}
+h1{
+    font-size: 60px;
+}
+
+textarea {
+    width: 95%;
+    height: 120px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #aaa;
+    font-size: 15px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: #4b76ff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover {
+    background: #2b55d4;
+}
+
+.entry {
+    background: #f2f5ff;
+    padding: 15px;
+    border-left: 5px solid #4b76ff;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+.entry small {
+    color: #666;
+}
+
+.delete-btn {
+    background: #ff4b4b;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    float: right;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: #d93232;
+}
+</style>
+</head>
+<body>
+
+    <div class="container">
+       <i> <h1>&#9679 My Journal &#9679<br>──── ୨୧ ────</h1></i>
+
+        <div class="journal-box">
+            <textarea id="journalInput" placeholder="Write freely. Release your thoughts. Find clarity through your own words...."></textarea>
+            <button onclick="saveEntry()">Save Entry</button>
+        </div>
+
+      <i>  <h2>Your Journal Entries<br>
+    -ˋˏ ༻❁✿❀༺ ˎˊ-</h2></i>
+           
+        <div id="entriesList"></div>
+    </div>
+
+    <script>window.onload = () => {
+    displayEntries();
+};
+
+function saveEntry() {
+    const text = document.getElementById("journalInput").value.trim();
+
+    if (text === "") {
+        alert("Please write something before saving!");
+        return;
+    }
+
+    const entry = {
+        text: text,
+        date: new Date().toLocaleString()
+    };
+
+    let entries = JSON.parse(localStorage.getItem("journalEntries")) || [];
+    entries.unshift(entry); // Add newest entry on top
+
+    localStorage.setItem("journalEntries", JSON.stringify(entries));
+
+    document.getElementById("journalInput").value = "";
+    displayEntries();
+}
+
+function displayEntries() {
+    const entriesList = document.getElementById("entriesList");
+    const entries = JSON.parse(localStorage.getItem("journalEntries")) || [];
+
+    entriesList.innerHTML = "";
+
+    entries.forEach((entry, index) => {
+        const div = document.createElement("div");
+        div.className = "entry";
+
+        div.innerHTML = `
+            <button class="delete-btn" onclick="deleteEntry(${index})">Delete</button>
+            <p>${entry.text}</p>
+            <small>${entry.date}</small>
+        `;
+
+        entriesList.appendChild(div);
+    });
+}
+
+function deleteEntry(index) {
+    let entries = JSON.parse(localStorage.getItem("journalEntries")) || [];
+    entries.splice(index, 1);
+
+    localStorage.setItem("journalEntries", JSON.stringify(entries));
+    displayEntries();
+}
+</script>
+</body>
+</html>

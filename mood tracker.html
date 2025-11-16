@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mood Tracker — With Tips & Activity</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:linear-gradient(135deg,rgb(171, 171, 209),#fefae0); --accent:#3b82f6; --muted:black;
+    --success:#16a34a; --danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Inter,system-ui,Arial; background:linear-gradient(180deg,#fefae0,rgb(28, 140, 159) );
+    color:#0f1724; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    padding:24px;
+  }
+  .wrap{max-width:920px;margin:0 auto;display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+  header{grid-column:1/-1;margin-bottom:6px}
+  h1{margin:0;font-size:60px;text-align: center;}
+  p.lead{margin:6px 0 0;color:var(--muted);font-size:0.95rem;text-align: center;}
+
+  /* Left column */
+  .card{
+    background:var(--card);border-radius:12px;padding:16px;box-shadow:0 8px 30px rgba(2,6,23,0.06);
+  }
+  .input-row{display:flex;gap:10px;align-items:center}
+  .input-row .flex{flex:1}
+  label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:6px}
+  input[type="text"]{
+    width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8;font-size:1rem;
+    outline:none;background:#fbfdff
+  }
+  .emoji-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .emoji-btn{
+    font-size:1.2rem;padding:8px;border-radius:8px;border:1px solid #e8f0ff;background:#fff;cursor:pointer;
+  }
+  .emoji-btn.active{box-shadow:0 6px 18px rgba(59,130,246,0.12);border-color:var(--accent)}
+  .controls{display:flex;gap:10px;align-items:center;margin-top:12px}
+  .btn{
+    background:var(--accent);color:black;padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600;
+  }
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,0.12)}
+  .btn.danger{background:var(--danger)}
+  .small{font-size:0.85rem;color:var(--muted)}
+
+  /* right column */
+  .side{position:sticky;top:20px}
+  .suggest, .activity, .history, .stats {margin-bottom:14px}
+  .suggest .title, .activity .title {font-weight:700;margin-bottom:8px}
+  .suggest p, .activity p{margin:0;padding:10px;border-radius:8px;background:linear-gradient(180deg,#ffffff,#f8fbff);border-left:4px solid var(--accent)}
+
+  /* history */
+  .history-list{max-height:360px;overflow:auto;margin-top:8px;padding-right:8px}
+  .entry{display:flex;justify-content:space-between;gap:12px;padding:10px;border-radius:8px;background:#fbfdff;margin-bottom:8px;align-items:center;border-left:4px solid #e6eef8}
+  .entry .left{display:flex;gap:10px;align-items:center}
+  .entry .emoji{font-size:1.3rem;padding:6px;border-radius:8px;background:#fff;border:1px solid #f0f5ff}
+  .entry .meta{font-size:0.85rem;color:var(--muted)}
+  .entry .actions button{border:none;background:transparent;cursor:pointer;color:var(--muted);padding:6px}
+
+  /* stats */
+  .stat-row{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .bar{height:12px;border-radius:8px;background:#eef2ff;flex:1;position:relative;overflow:hidden}
+  .bar > i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--accent),#60a5fa);display:block}
+
+  footer.actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  .muted{color:var(--muted);font-size:0.88rem}
+
+  /* responsive */
+  @media (max-width:880px){
+    .wrap{grid-template-columns:1fr; padding-bottom:60px}
+    .side{position:relative;top:auto}
+  }
+
+  /* tiny toast */
+  .toast{
+    position:fixed;right:20px;bottom:20px;background:#111a2b;color:#fff;padding:10px 14px;border-radius:8px;box-shadow:0 8px 30px rgba(2,6,23,0.35);opacity:0;transform:translateY(10px);transition:all .25s;
+  }
+  .toast.show{opacity:1;transform:none}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1> &#9679 Mood Tracker &#9679<br>─── ⋆⋅☆⋅⋆ ──</h1>
+      <p class="lead">Quickly log your mood, get tailored tips & activity ideas. History is saved to your browser.</p>
+    </header>
+
+    <!-- left: input and history -->
+    <div class="card">
+      <label for="moodInput">Describe your mood (word or short phrase)</label>
+      <div class="input-row">
+        <div class="flex">
+          <input id="moodInput" type="text" placeholder="e.g. anxious, happy, tired, excited..." />
+          <div class="emoji-list" id="emojiList" aria-hidden="true">
+            <!-- emoji buttons injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small">Intensity: <span id="intensityVal">5</span></label>
+        <input id="intensity" type="range" min="1" max="10" value="5" style="width:100%;margin-top:6px"/>
+      </div>
+
+      <div class="controls" style="margin-top:14px">
+        <button class="btn" id="saveBtn">Save Mood</button>
+        <button class="btn ghost" id="suggestBtn" title="Get a tip without saving">Get Tip</button>
+        <button class="btn ghost" id="resetBtn" title="Clear input">Reset</button>
+      </div>
+
+      <div style="margin-top:18px">
+        <label class="small">Quick tags (click to append)</label>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="emoji-btn quick" data-val="happy">😊 Happy</button>
+          <button class="emoji-btn quick" data-val="sad">😔 Sad</button>
+          <button class="emoji-btn quick" data-val="stressed">😣 Stressed</button>
+          <button class="emoji-btn quick" data-val="angry">😡 Angry</button>
+          <button class="emoji-btn quick" data-val="anxious">😰 Anxious</button>
+          <button class="emoji-btn quick" data-val="excited">🤩 Excited</button>
+        </div>
+      </div>
+
+      <hr style="margin:18px 0;border:0;border-top:1px solid #f0f5ff"/>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">Mood History</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn ghost" id="exportBtn">Export CSV</button>
+            <button class="btn danger" id="clearAllBtn" title="Clear all history">Clear All</button>
+          </div>
+        </div>
+
+        <div class="history-list" id="historyList" aria-live="polite" style="margin-top:10px">
+          <!-- entries here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- right: suggestions, activity, stats -->
+    <aside class="side">
+      <div class="card suggest">
+        <div class="title">Suggestion</div>
+        <p id="suggestionText">Type a mood and press "Get Tip" or "Save Mood" to see personalized tips.</p>
+      </div>
+
+      <div class="card activity">
+        <div class="title">Recommended Activity</div>
+        <p id="activityText">Activities appear here based on mood & intensity.</p>
+      </div>
+
+      <div class="card stats">
+        <div class="title">Mood Stats (last 30 entries)</div>
+        <div style="margin-top:8px" id="statsWrap">
+          <!-- bars -->
+        </div>
+        <div style="margin-top:10px;font-size:0.9rem;color:var(--muted)">Tip: Save a few entries to see stats update.</div>
+      </div>
+    </aside>
+
+    <footer class="actions">
+      <div class="muted">Local only — data saved to your browser (localStorage)</div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ======================
+   Mood Tracker — Vanilla JS
+   Single-file app — works offline
+   ====================== */
+
+const STORAGE_KEY = 'moodHistoryV1';
+const MAX_STATS_COUNT = 30;
+
+// Known mood mappings to normalize and tips/activities
+const MOOD_MAP = {
+  happy: { tips: ['Share your joy with a friend', 'Do something creative'], activity: 'Call a friend or create something' },
+  sad: { tips: ['It’s okay to feel sad — sit with the feeling', 'Try writing your thoughts in a journal'], activity: 'Listen to calming music or journal' },
+  stressed: { tips: ['Try 4-4-4 breathing', 'Take a 5-minute walk to reset'], activity: 'Short walk or breathing exercise' },
+  anxious: { tips: ['5-4-3-2-1 grounding can help', 'Focus on one small task now'], activity: 'Grounding exercise or stretch' },
+  angry: { tips: ['Take deep breaths and count to 10', 'Move your body to release energy'], activity: 'Do physical exercise or shake it out' },
+  tired: { tips: ['Short nap (15-25 mins) helps', 'Hydrate and do a gentle stretch'], activity: 'Power nap or gentle walk' },
+  bored: { tips: ['Try a mini challenge', 'Learn a short tutorial on something new'], activity: 'Start a 20-minute learning sprint' },
+  excited: { tips: ['Channel energy into something productive', 'Share your enthusiasm with someone'], activity: 'Begin a creative project' },
+  calm: { tips: ['Savour this moment of peace', 'Do a short gratitude check'], activity: 'Mindful breathing or a cup of tea' }
+};
+
+// Emoji options for the emoji picker
+const EMOJIS = [
+  { e: '😊', name: 'happy' },
+  { e: '😔', name: 'sad' },
+  { e: '😣', name: 'stressed' },
+  { e: '😡', name: 'angry' },
+  { e: '😰', name: 'anxious' },
+  { e: '🤩', name: 'excited' },
+  { e: '😴', name: 'tired' },
+  { e: '😐', name: 'calm' },
+  { e: '🤒', name: 'unwell' }
+];
+
+/* ---------- Helpers ---------- */
+const byId = id => document.getElementById(id);
+
+function loadHistory(){
+  try{
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  }catch(e){ return []; }
+}
+function saveHistory(arr){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+
+function showToast(msg, ms=1800){
+  const t = byId('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(()=> t.classList.remove('show'), ms);
+}
+
+/* ---------- UI init ---------- */
+function initEmojiPicker(){
+  const wrap = byId('emojiList');
+  wrap.innerHTML = '';
+  EMOJIS.forEach(it=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'emoji-btn';
+    btn.title = it.name;
+    btn.textContent = it.e;
+    btn.addEventListener('click', ()=> {
+      // toggle active
+      document.querySelectorAll('#emojiList .emoji-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      // set moodInput if empty or append emoji name
+      const input = byId('moodInput');
+      if(!input.value.trim()) input.value = it.name;
+      // store selected emoji on input dataset for later save
+      input.dataset.emoji = it.e;
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+/* ---------- Suggestions & Activity ---------- */
+function normalizeMood(text){
+  if(!text) return '';
+  text = text.toLowerCase().trim();
+  // simple checks: if contains a known mood word, return that; else return first word
+  for(const key of Object.keys(MOOD_MAP)){
+    if(text.includes(key)) return key;
+  }
+  // check common alternatives
+  if(text.includes('happy')||text.includes('joy')||text.includes('glad')) return 'happy';
+  if(text.includes('sad')||text.includes('down')||text.includes('blue')) return 'sad';
+  if(text.includes('stress')||text.includes('overwhelm')) return 'stressed';
+  if(text.includes('anx')||text.includes('nerv')) return 'anxious';
+  if(text.includes('ang')||text.includes('mad')) return 'angry';
+  if(text.includes('tired')||text.includes('sleep')) return 'tired';
+  if(text.includes('bore')) return 'bored';
+  if(text.includes('excite')) return 'excited';
+  if(text.includes('calm')||text.includes('peace')) return 'calm';
+  // default to first token
+  return text.split(/\s+/)[0];
+}
+
+function getRecommendation(moodKey, intensity){
+  const base = MOOD_MAP[moodKey];
+  if(base){
+    // choose tip scaled by intensity
+    const tipIndex = Math.min(base.tips.length-1, Math.floor((intensity-1)/Math.max(1, Math.floor(10/base.tips.length))));
+    const tip = base.tips[tipIndex] || base.tips[0];
+    // activity scaled: if intensity high, recommend active remedy for bad moods; if positive mood, suggest channeling energy
+    let activity = base.activity;
+    if(['stressed','anxious','angry','sad','tired','unwell'].includes(moodKey)){
+      if(intensity >= 7) activity += ' — consider calling someone or seeking support.';
+      else if(intensity >=4) activity += ' — try a short breathing exercise.';
+    } else {
+      if(intensity >=7) activity += ' — great energy! Start a project or share with others.';
+    }
+    return { tip, activity };
+  } else {
+    // fallback generic suggestions
+    if(intensity >=8) {
+      return { tip: 'This seems strong — talk to someone you trust or take a short break.', activity: 'Step outside briefly (1-5 minutes) and breathe.' };
+    }
+    return { tip: 'Try a short breathing or grounding exercise (5 breaths).', activity: 'Take a short walk or listen to a favorite song.' };
+  }
+}
+
+/* ---------- Render history & stats ---------- */
+function renderHistory(){
+  const list = loadHistory();
+  const wrap = byId('historyList');
+  wrap.innerHTML = '';
+  if(list.length === 0){
+    wrap.innerHTML = '<div class="muted" style="padding:8px">No entries yet. Save a mood to see history.</div>';
+    renderStats([]);
+    return;
+  }
+
+  // newest first
+  const recent = list.slice().reverse();
+  recent.forEach((item, idx)=>{
+    const el = document.createElement('div');
+    el.className = 'entry';
+    const left = document.createElement('div'); left.className = 'left';
+    const emoji = document.createElement('div'); emoji.className='emoji'; emoji.textContent = item.emoji || '🙂';
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.innerHTML = `<div style="font-weight:700">${escapeHtml(item.mood)} <span style="color:var(--muted);font-weight:600;font-size:0.82rem">(${item.intensity})</span></div>
+                      <div style="font-size:0.82rem;color:var(--muted)">${escapeHtml(item.suggestion)}</div>
+                      <div style="font-size:0.78rem;color:var(--muted);margin-top:6px">${escapeHtml(item.date)}</div>`;
+    left.appendChild(emoji); left.appendChild(meta);
+
+    const right = document.createElement('div'); right.className='actions';
+    const delBtn = document.createElement('button'); delBtn.title='Delete entry'; delBtn.innerHTML='🗑️';
+    delBtn.addEventListener('click', ()=> {
+      // compute actual index in storage (reverse mapping)
+      const actualIdx = list.length - 1 - idx;
+      list.splice(actualIdx,1);
+      saveHistory(list);
+      renderHistory();
+      showToast('Entry deleted');
+    });
+    right.appendChild(delBtn);
+    el.appendChild(left); el.appendChild(right);
+    wrap.appendChild(el);
+  });
+
+  renderStats(list);
+}
+
+function renderStats(list){
+  // compute counts for known moods (normalized)
+  const slice = list.slice(-MAX_STATS_COUNT);
+  const counts = {};
+  for(const it of slice){
+    const key = normalizeMood(it.mood);
+    counts[key] = (counts[key]||0)+1;
+  }
+  const container = byId('statsWrap');
+  container.innerHTML = '';
+  if(Object.keys(counts).length === 0){
+    container.innerHTML = '<div class="muted">No stats yet</div>';
+    return;
+  }
+  // sort keys by count desc
+  const sorted = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  const max = Math.max(...Object.values(counts));
+  sorted.forEach(k=>{
+    const row = document.createElement('div');
+    row.style.marginBottom = '8px';
+    row.innerHTML = `<div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:6px"><strong style="text-transform:capitalize">${escapeHtml(k)}</strong><span class="small">${counts[k]}</span></div>
+      <div class="bar" aria-hidden="true"><i style="width:${Math.round((counts[k]/max)*100)}%"></i></div>`;
+    container.appendChild(row);
+  });
+}
+
+/* ---------- Save & export ---------- */
+function saveMood(){
+  const raw = byId('moodInput').value.trim();
+  if(!raw){
+    showToast('Please type a mood or pick an emoji');
+    return;
+  }
+  const intensity = Number(byId('intensity').value || 5);
+  const emoji = byId('moodInput').dataset.emoji || (document.querySelector('#emojiList .emoji-btn.active') ? document.querySelector('#emojiList .emoji-btn.active').textContent : '');
+  const moodKey = normalizeMood(raw);
+  const rec = getRecommendation(moodKey, intensity);
+
+  const entry = {
+    mood: raw,
+    normalized: moodKey,
+    intensity,
+    emoji: emoji || (EMOJIS.find(e=>e.name===moodKey)?.e || ''),
+    suggestion: rec.tip,
+    activity: rec.activity,
+    date: new Date().toLocaleString()
+  };
+
+  const arr = loadHistory();
+  arr.push(entry);
+  saveHistory(arr);
+
+  // update UI
+  renderHistory();
+  // show suggestion panel
+  byId('suggestionText').textContent = entry.suggestion;
+  byId('activityText').textContent = entry.activity;
+  // clear input but keep emoji dataset cleared
+  byId('moodInput').value = '';
+  byId('moodInput').dataset.emoji = '';
+  document.querySelectorAll('#emojiList .emoji-btn').forEach(b=>b.classList.remove('active'));
+  showToast('Mood saved');
+}
+
+function exportCSV(){
+  const arr = loadHistory();
+  if(arr.length === 0){ showToast('No data to export'); return; }
+  const headers = ['date','mood','normalized','emoji','intensity','suggestion','activity'];
+  const rows = arr.map(r => headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mood-history-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Exported CSV');
+}
+
+/* ---------- small utilities ---------- */
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- events ---------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  initEmojiPicker();
+  renderHistory();
+
+  // intensity value display
+  const intEl = byId('intensity'), intVal = byId('intensityVal');
+  intVal.textContent = intEl.value;
+  intEl.addEventListener('input', ()=> intVal.textContent = intEl.value);
+
+  // quick tag buttons
+  document.querySelectorAll('.quick').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const val = b.dataset.val;
+      const input = byId('moodInput');
+      // append or replace if empty
+      if(!input.value.trim()) input.value = val;
+      else input.value = input.value + ' ' + val;
+    });
+  });
+
+  byId('saveBtn').addEventListener('click', saveMood);
+  byId('suggestBtn').addEventListener('click', ()=>{
+    const raw = byId('moodInput').value.trim();
+    if(!raw){ showToast('Type a mood or pick an emoji to get a tip'); return; }
+    const intensity = Number(byId('intensity').value || 5);
+    const moodKey = normalizeMood(raw);
+    const rec = getRecommendation(moodKey, intensity);
+    byId('suggestionText').textContent = rec.tip;
+    byId('activityText').textContent = rec.activity;
+    showToast('Tip generated');
+  });
+
+  byId('resetBtn').addEventListener('click', ()=>{
+    byId('moodInput').value = '';
+    byId('moodInput').dataset.emoji = '';
+    document.querySelectorAll('#emojiList .emoji-btn').forEach(b=>b.classList.remove('active'));
+    showToast('Input cleared',900);
+  });
+
+  byId('clearAllBtn').addEventListener('click', ()=>{
+    if(!confirm('Clear all mood history? This cannot be undone.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    renderHistory();
+    showToast('All history cleared');
+  });
+
+  byId('exportBtn').addEventListener('click', exportCSV);
+
+  // allow Enter to save
+  byId('moodInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); saveMood(); }
+  });
+});
+</script>
+</body>
+</html>

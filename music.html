@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Music Playlist</title>
+ <style>body {
+  font-family: Arial;
+  background:linear-gradient(134deg,#F2F0CE, #0c4003);
+  color: white;
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+  height: 100vh;
+}
+
+.player-container {
+  background: #162746;
+  padding: 20px;
+  width: 350px;
+  border-radius: 12px;
+  text-align: center;
+  height: fit-content;
+}
+
+.controls button {
+  margin: 10px;
+  padding: 10px 20px;
+  background: #61dafb;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.controls button:hover {
+  background: #21a1f1;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  padding: 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #444;
+}
+
+ul li:hover {
+  background: #3a3f47;
+}
+
+.active {
+  color: #61dafb;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+  <div class="player-container">
+    <h2>🎧 Focus Music Playlist <br>⋆.˚🦋༘⋆</h2>
+
+    <audio id="audioPlayer"></audio>
+
+    <div class="info">
+      <h3 id="songTitle">Loading...</h3>
+    </div>
+
+    <div class="controls">
+      <button onclick="prevSong()">⏮ Prev</button>
+      <button onclick="playPause()" id="playBtn">▶ Play</button>
+      <button onclick="nextSong()">⏭ Next</button>
+    </div>
+
+    <div class="playlist">
+      <h4>Playlist</h4>
+      <ul id="playlistList"></ul>
+    </div>
+  </div>
+
+<script>// Focus Playlist Songs
+const playlist = [
+  { title: "Deep Focus Beat🍁", src: "Music/peaceful-piano-instrumental-for-studying-and-focus-232535.mp3" },
+  { title: "LoFi Concentration💆🏻‍♀️", src: "Music/deep-focus-113552.mp3" },
+  { title: "Night Study Vibes⭐", src: "Music/deep-calm-419058.mp3" },
+  {title:"Deep Meditation🧘🏻‍♀️",src:"Music/deep-meditation-infinite-breaths-298843.mp3"},
+  {title:"Nature Sound🌿",src:"Music/deep-focus-mode-cinematic-ambient-binaural-393434.mp3"},
+  {title:"Deep relax🍀",src:"Music/free-royalty-zen-calm-deep-meditation-and-sleep-music-191592 - Copy.mp3"}
+];
+
+let currentIndex = 0;
+const audio = document.getElementById("audioPlayer");
+const title = document.getElementById("songTitle");
+const playBtn = document.getElementById("playBtn");
+const playlistList = document.getElementById("playlistList");
+
+// Load Songs in Playlist UI
+playlist.forEach((song, index) => {
+  const li = document.createElement("li");
+  li.textContent = song.title;
+
+  li.onclick = () => {
+    currentIndex = index;
+    loadSong();
+    playSong();
+  };
+
+  playlistList.appendChild(li);
+});
+
+// Load Current Song
+function loadSong() {
+  audio.src = playlist[currentIndex].src;
+  title.textContent = playlist[currentIndex].title;
+  updateActiveSong();
+}
+
+function updateActiveSong() {
+  const items = document.querySelectorAll("#playlistList li");
+  items.forEach((item, i) => {
+    item.classList.toggle("active", i === currentIndex);
+  });
+}
+
+// Play / Pause Function
+function playPause() {
+  if (audio.paused) {
+    playSong();
+  } else {
+    audio.pause();
+    playBtn.textContent = "▶ Play";
+  }
+}
+
+function playSong() {
+  audio.play();
+  playBtn.textContent = "⏸ Pause";
+}
+
+// Next Song
+function nextSong() {
+  currentIndex = (currentIndex + 1) % playlist.length;
+  loadSong();
+  playSong();
+}
+
+// Previous Song
+function prevSong() {
+  currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+  loadSong();
+  playSong();
+}
+
+// Auto Play Next
+audio.onended = nextSong;
+
+// Load First Song Initially
+loadSong();</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quote Generator</title>
+  <style>:root{
+  --bg:#0f1724;
+  --card:#0b1220;
+  --accent:#7dd3fc;
+  --muted:#94a3b8;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+body{
+  display:flex;align-items:center;justify-content:center;flex-direction: column;
+  background:linear-gradient(180deg,#05112a 0%, #035151 100%);
+  color: #e6eef8;
+  padding:20px;
+}
+h1{
+    text-align: center;
+}
+.container{width:100%;max-width:700px}
+.card{
+  background:linear-gradient(180deg, rgba(9, 75, 30, 0.03), rgba(44, 86, 80, 0.02));
+  border-radius:12px;padding:28px;
+  box-shadow: 0 10px 30px rgba(1, 4, 18, 0.6);
+  position:relative;
+}
+ /* .loader{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background: rgba(4,8,16,0.5);border-radius:12px;backdrop-filter: blur(4px);} */
+
+.loader::after{
+  content:"";width:48px;height:48px;border-radius:50%;
+  /* border:4px solid rgba(125,211,252,0.15);
+  border-top-color:var(--accent);animation:spin 1s linear infinite; */
+}
+/* @keyframes spin{to{transform:rotate(360deg)}} */
+
+.quote-block{min-height:120px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.quote{
+  font-size:1.35rem;line-height:1.4;margin:0;padding:0;opacity:0;transform:translateY(8px);transition:all .35s ease;
+}
+.quote.show{opacity:1;transform:none}
+.author{margin:0;color:var(--muted);font-size:0.95rem}
+
+.buttons{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn{
+  background:transparent;border:1px solid rgba(125,211,252,0.12);color:var(--accent);
+  padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600;
+  transition:all .18s ease;
+}
+.btn:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(13,42,64,0.4)}
+.footer{margin-top:14px;color:var(--muted);font-size:0.9rem}
+
+.small{display:flex;align-items:center;gap:8px}
+input[type="checkbox"]{width:16px;height:16px}
+</style>
+</head>
+<body>
+    <h1> &#9679 INSPIRE NOW  &#9679<br>┈┈┈┈┈┈┈┈</h1>
+  <main class="container">
+    <div class="card" id="card">
+      <div class="loader" id="loader" hidden></div>
+
+      <div class="quote-block">
+        <p id="quote" class="quote">Loading inspirational quote…</p>
+        <p id="author" class="author">—</p>
+      </div>
+
+      <div class="buttons">
+        <button id="newBtn" class="btn">New Quote</button>
+        <button id="copyBtn" class="btn">Copy</button>
+        <button id="tweetBtn" class="btn">Tweet</button>
+      </div>
+
+      <div class="footer">
+        <label class="small">
+          <div id="apiToggle"> </div>
+        </label>
+      </div>
+    </div>
+  </main>
+
+<script>// Simple Quote Generator (works offline with local array; optionally fetches from an API)
+const quotes = [
+  { q: "Small steps every day lead to big victories.🌺", a: "Unknown" },
+  { q: "Fear disappears when determination takes over.🌸", a: "Unknown" },
+  { q: "Effort never goes to waste; it builds strength within.🌹", a: "Unknown" },
+  { q: "Hard work is the prayer that always gets answered.🌷", a: "Unknown" },
+  { q: "Your mind takes you exactly where you believe you can go.💐", a: "Unknown" },
+  { q: "Every win begins with a strong belief.🥀", a: "Robert Collier" },
+  { q: "You only lose when you decide to stop trying.🕊️", a: "Unknown" },
+  { q: "Hard work is the most loyal companion you’ll ever have.❤︎",a: "Unknown"},
+  { q: "Difficult roads often lead to beautiful destinations.❁",a: "Chris Grosser"},
+  { q: "Challenges teach you more than comfort ever will.✿",a: "Unknown"},
+  { q: "You are stronger than you think.❀",a: "A.A. Milne"},
+  { q: "Today’s pain becomes tomorrow’s power.💚",a: "Unknown"},
+  { q: "There is no shortcut to success, only dedication.🧡",a: "Zig Ziglar"},
+  { q: "Walk alone if you must; strength grows in solitude.😊",a: "Unknown"},
+  { q: "Don’t limit yourself; the world is wider than you imagine.💙",a: "Chris Grosser"},
+  { q: "Those who believe in themselves reshape their destiny.",a: "Unknown"},
+  { q: "Create opportunities instead of waiting for them.💛",a: "Unknown"},
+  { q: "Fight your own battles; the victory is yours alone.💜",a: "William Arthur Ward"},
+  { q: "Nothing is impossible for a heart full of dreams.🌷",a: "Unknown"},
+  { q: "Failure is simply a new beginning in disguise.💖",a: "Alice Morse Earle"},  
+  { q: "When you feel tired, remember why you started.🍃",a: "Unknown"},
+  { q: "Possibilities are endless if your vision is clear.✨",a: "Brené Brown"},
+  { q: "A calm mind makes solutions visible.🪶",a: "Unknown"}, 
+  { q: "Become 1% better every day.🍁",a: "Robert Collier"},
+  { q: "Be gentle with yourself—you’re trying.🤗",a:"Unknown"},
+  { q: "Dreams grow bigger with every ounce of effort.🧘",a: "James Clear"},
+  { q: "Understanding emotions is more powerful than hiding them.🍀",a:"Unknown"}
+];
+
+const quoteEl = document.getElementById('quote');
+const authorEl = document.getElementById('author');
+const newBtn = document.getElementById('newBtn');
+const copyBtn = document.getElementById('copyBtn');
+const tweetBtn = document.getElementById('tweetBtn');
+const loader = document.getElementById('loader');
+// const apiToggle = document.getElementById('apiToggle');
+
+function showLoader(show = true){
+  loader.hidden = !show;
+}
+
+function setQuoteText(text, author){
+  // animation
+  quoteEl.classList.remove('show');
+  setTimeout(()=> {
+    quoteEl.textContent = text;
+    authorEl.textContent = author ? `— ${author}` : '— Unknown';
+    quoteEl.classList.add('show');
+  }, 80);
+}
+
+// pick random from local list
+function randomLocalQuote(){
+  const i = Math.floor(Math.random()*quotes.length);
+  return quotes[i];
+}
+
+// try fetching from quotable API, fallback to local
+async function getQuote(){
+  showLoader(true);
+  if(apiToggle.checked){
+    try{
+      // Using Quotable (public) - if network fails, fallback
+      const res = await fetch('https://api.quotable.io/random', {cache:'no-cache'});
+      if(!res.ok) throw new Error('API error');
+      const data = await res.json();
+      showLoader(false);
+      return { q: data.content, a: data.author || 'Unknown' };
+    }catch(err){
+      // console.warn('API failed, using local quotes.', err);
+    }
+  }
+  // local fallback
+  await new Promise(r => setTimeout(r, 300)); // small UX delay
+  showLoader(false);
+  return randomLocalQuote();
+}
+
+async function loadNew(){
+  const { q, a } = await getQuote();
+  setQuoteText(q, a);
+}
+
+// copy to clipboard
+copyBtn.addEventListener('click', async () => {
+  const text = `${quoteEl.textContent}\n${authorEl.textContent}`;
+  try{
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(()=> copyBtn.textContent = 'Copy', 1400);
+  }catch(e){
+    copyBtn.textContent = 'Not Copied';
+    setTimeout(()=> copyBtn.textContent = 'Copy', 1400);
+  }
+});
+
+// tweet/share
+tweetBtn.addEventListener('click', () => {
+  const text = `${quoteEl.textContent} ${authorEl.textContent}`;
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+});
+
+newBtn.addEventListener('click', loadNew);
+
+// initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadNew();
+});
+</script>
+</body>
+</html>
